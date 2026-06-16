@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex 与 IDE 协作体验整理 - 深色模式</title>
+  <style>
+    :root {
+      --bg: #160d09;
+      --bg-2: #21130d;
+      --panel: #2b1a12;
+      --panel-soft: #352217;
+      --ink: #fff3df;
+      --muted: #d5bda4;
+      --muted-2: #a98b73;
+      --coffee: #0f0907;
+      --orange: #f08a32;
+      --orange-deep: #c95d16;
+      --line: rgba(255, 230, 198, 0.16);
+      --shadow: 0 24px 54px rgba(0, 0, 0, 0.38);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #0f0907 0%, var(--bg) 42%, #24150f 100%);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+      line-height: 1.72;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(240, 138, 50, 0.1), transparent 28%, transparent 72%, rgba(255, 243, 223, 0.04)),
+        repeating-linear-gradient(0deg, rgba(255, 243, 223, 0.025) 0 1px, transparent 1px 88px);
+      opacity: 0.8;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .hero {
+      min-height: 88vh;
+      display: grid;
+      align-items: center;
+      padding: 56px 0 30px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 44px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 22px;
+      color: var(--orange);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 2px;
+      background: var(--orange);
+      box-shadow: 0 0 18px rgba(240, 138, 50, 0.42);
+    }
+
+    h1 {
+      max-width: 780px;
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(46px, 7vw, 84px);
+      line-height: 1.03;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 720px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.86;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 32px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 46px;
+      padding: 10px 18px;
+      border: 1px solid var(--orange);
+      border-radius: 8px;
+      color: #170d09;
+      background: var(--orange);
+      font-weight: 800;
+      box-shadow: 0 14px 28px rgba(240, 138, 50, 0.18);
+    }
+
+    .button.secondary {
+      color: var(--ink);
+      background: rgba(255, 243, 223, 0.06);
+      border-color: var(--line);
+      box-shadow: none;
+    }
+
+    .hero-panel {
+      position: relative;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(43, 26, 18, 0.82);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 7px;
+      border-radius: 8px 0 0 8px;
+      background: var(--orange);
+    }
+
+    .statement {
+      margin: 0;
+      color: var(--ink);
+      font-size: 27px;
+      font-weight: 800;
+      line-height: 1.38;
+    }
+
+    .formula {
+      margin: 28px 0 0;
+      padding: 22px;
+      border-radius: 8px;
+      color: #fff7e8;
+      background: #0d0705;
+      border: 1px solid rgba(255, 243, 223, 0.1);
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 15px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .toc-band {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: rgba(22, 13, 9, 0.9);
+      backdrop-filter: blur(16px);
+    }
+
+    .toc {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 12px 0;
+    }
+
+    .toc a {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+      background: rgba(255, 243, 223, 0.06);
+      border: 1px solid var(--line);
+    }
+
+    main {
+      padding: 58px 0 84px;
+    }
+
+    .section {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 40px;
+      padding: 34px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-label {
+      position: sticky;
+      top: 76px;
+      align-self: start;
+      color: var(--orange);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      color: var(--ink);
+      font-size: 32px;
+      line-height: 1.24;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      color: #ffe4bd;
+      font-size: 21px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+    }
+
+    ul,
+    ol {
+      margin: 12px 0 20px;
+      padding-left: 1.25rem;
+      color: var(--muted);
+    }
+
+    li {
+      margin: 7px 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .card {
+      min-height: 100%;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(53, 34, 23, 0.72);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+      color: var(--muted);
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 17px;
+    }
+
+    .accent {
+      border-left: 6px solid var(--orange);
+      padding: 18px 20px;
+      margin: 22px 0;
+      border-radius: 8px;
+      background: rgba(240, 138, 50, 0.09);
+      color: #ffe5c1;
+      font-weight: 800;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 5px;
+      color: #ffb66e;
+      background: rgba(240, 138, 50, 0.13);
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 0.94em;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 18px 0 24px;
+      padding: 20px;
+      border-radius: 8px;
+      color: #fff4e5;
+      background: #0d0705;
+      border: 1px solid rgba(255, 243, 223, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    }
+
+    pre code {
+      padding: 0;
+      color: inherit;
+      background: transparent;
+      font-size: 14px;
+      line-height: 1.72;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .dot {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      color: #180d09;
+      background: var(--orange);
+      font-weight: 900;
+      box-shadow: 0 0 0 5px rgba(240, 138, 50, 0.12);
+    }
+
+    .quote {
+      margin: 24px 0 0;
+      padding: 26px;
+      border-radius: 8px;
+      color: #160d09;
+      background: linear-gradient(135deg, #f08a32, #ffd19c);
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1.5;
+    }
+
+    footer {
+      padding: 34px 0 44px;
+      color: var(--muted-2);
+      border-top: 1px solid var(--line);
+    }
+
+    footer p {
+      color: var(--muted-2);
+    }
+
+    @media (max-width: 880px) {
+      .hero-grid,
+      .section {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: auto;
+      }
+
+      .section-label {
+        position: static;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        width: min(100% - 22px, 1180px);
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      .lead {
+        font-size: 17px;
+      }
+
+      .hero-panel {
+        padding: 22px;
+      }
+
+      .statement {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="shell hero-grid">
+      <div>
+        <p class="eyebrow">Codex x IDE Workflow Notes</p>
+        <h1>Codex 与 IDE 协作体验整理</h1>
+        <p class="lead">深色模式版。把 IDE 的即时反馈、Codex 的项目级 agent 能力、MCP 的外部连接和 AGENTS.md / skills 的流程记忆放在同一个工作台里理解。</p>
+        <div class="hero-actions">
+          <a class="button" href="#conclusion">查看最终结论</a>
+          <a class="button secondary" href="#diff">理解 Diff 类型</a>
+        </div>
+      </div>
+      <aside class="hero-panel" aria-label="核心判断">
+        <p class="statement">开箱体验割裂，并不等于 Codex 不好用。真正的问题是产品形态、权限、记忆和协作节奏没有对齐。</p>
+        <pre class="formula"><code>IDE 原生陪伴感不足
++ 默认权限太保守
++ 项目记忆为空
++ 协作风格未明确
+= 开箱体验割裂</code></pre>
+      </aside>
+    </div>
+  </header>
+
+  <nav class="toc-band" aria-label="页面导航">
+    <div class="shell toc">
+      <a href="#problem">体验问题</a>
+      <a href="#config">Codex 配置</a>
+      <a href="#ide">IDE 能力</a>
+      <a href="#codex">Codex 边界</a>
+      <a href="#diff">Diff 三层</a>
+      <a href="#mcp">MCP 定位</a>
+      <a href="#workflow">推荐路线</a>
+      <a href="#memory">项目记忆</a>
+      <a href="#conclusion">结论</a>
+    </div>
+  </nav>
+
+  <main class="shell">
+    <section class="section" id="problem">
+      <div class="section-label">01 / 初始体验</div>
+      <div>
+        <h2>主要痛点不是单点功能缺失，而是体验重心错位</h2>
+        <p>Qoder、Cursor、VS Code Copilot 更像贴在 IDE 里的副驾驶；Codex 更像项目级 agent，擅长读仓库、改文件、跑命令、接 MCP、用 skills。</p>
+        <div class="grid">
+          <div class="card"><strong>权限太保守</strong>如果启动在 <code>read-only</code>，Codex 会变成只能看不能顺手做的顾问。</div>
+          <div class="card"><strong>审批太频繁</strong>读文件、联网、PowerShell、MCP 反复确认，会带来明显疲劳感。</div>
+          <div class="card"><strong>项目记忆为空</strong>没有项目背景和长期约定时，协作容易像临时外包。</div>
+          <div class="card"><strong>风格未明确</strong><code>AGENTS.md</code> 和项目说明决定它是“接单”还是 pair programmer。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="config">
+      <div class="section-label">02 / 配置基线</div>
+      <div>
+        <h2>Codex 端适合日常开发的安全默认</h2>
+        <p>推荐配置让 Codex 可以在工作区内完成普通修改，真正越界或失败时再请求确认。</p>
+        <pre><code>sandbox_mode = "workspace-write"
+approval_policy = "on-failure"
+web_search = "live"</code></pre>
+        <ul>
+          <li>Codex 可以在当前项目工作区内读写文件。</li>
+          <li>普通项目内修改不应反复审批。</li>
+          <li>命令失败后需要更高权限时再询问。</li>
+          <li>联网搜索启用 live web search。</li>
+          <li>工作区外写入、依赖安装、破坏性操作、凭据修改仍然要审批。</li>
+        </ul>
+        <h3>只读审查模式</h3>
+        <pre><code>sandbox_mode = "read-only"
+approval_policy = "never"
+web_search = "live"</code></pre>
+      </div>
+    </section>
+
+    <section class="section" id="ide">
+      <div class="section-label">03 / IDE 身体</div>
+      <div>
+        <h2>Qoder、Cursor、Copilot 的安心感来自 IDE 深度集成</h2>
+        <p>这些工具能直接使用当前文件、光标、选区、打开的 tab、diagnostics、文件树、Git 状态、diff editor、terminal、preview / webview 和 workspace index。</p>
+        <div class="grid">
+          <div class="card"><strong>即时编辑</strong>ghost text 补全、inline edit、当前选区变换。</div>
+          <div class="card"><strong>可视化审阅</strong>工作区红绿 diff、gutter change marker、文件树 dirty 状态。</div>
+          <div class="card"><strong>逐块决策</strong>部分工具支持 accept / reject 和 AI 预览 diff。</div>
+          <div class="card"><strong>上下文注入</strong>项目索引、repo memory、当前编辑器上下文自动进入对话。</div>
+        </div>
+        <p class="accent">这些能力不是单靠模型获得的，而是 IDE extension 与编辑器 API 深度绑定后的结果。</p>
+      </div>
+    </section>
+
+    <section class="section" id="codex">
+      <div class="section-label">04 / Agent 大脑</div>
+      <div>
+        <h2>Codex 的优势是项目级 agent 能力</h2>
+        <ul>
+          <li>跨文件理解和修改。</li>
+          <li>用 shell 跑检查和测试。</li>
+          <li>通过 MCP 连接外部系统。</li>
+          <li>通过 skills 固化工作流。</li>
+          <li>使用更强模型做推理、规划、重构和审查。</li>
+          <li>适合较长任务和项目级任务。</li>
+        </ul>
+        <p>但 Codex 桌面 / CLI 本身不是 IDE，所以天然不等价于原生 ghost text、编辑器内光标级补全、主编辑区 inline accept / reject。</p>
+      </div>
+    </section>
+
+    <section class="section" id="diff">
+      <div class="section-label">05 / Diff 三层</div>
+      <div>
+        <h2>这轮测试里最容易混淆的是 diff</h2>
+        <div class="timeline">
+          <div class="step">
+            <div class="dot">1</div>
+            <div>
+              <h3>Git 工作区 diff</h3>
+              <p>Codex 修改磁盘文件，IDE 文件监听发现变化，Git 发现工作区相对 HEAD 变化，然后文件树、gutter、Source Control 显示红绿标记。</p>
+              <pre><code>Codex 修改磁盘文件
+-> IDE 文件监听发现变化
+-> Git 发现工作区相对 HEAD 变化
+-> 文件树、gutter、Source Control 显示红绿标记</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="dot">2</div>
+            <div>
+              <h3>Git diff editor</h3>
+              <p>在 Source Control / Git 面板里点开文件看到的只读红绿对比，适合审阅、复制、回退、比较。</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="dot">3</div>
+            <div>
+              <h3>AI 预览 diff</h3>
+              <p>AI 在真正写入文件之前展示建议改动，让用户逐块 accept / reject。它需要插件维护 pending edits 状态。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="qoder">
+      <div class="section-label">06 / Qoder 侧栏</div>
+      <div>
+        <h2>Qoder 里的 Codex 侧栏 diff 更接近 agent 审批流</h2>
+        <p>从 Qoder 内部 Codex 侧栏发起修改时，侧栏会弹出自己的小窗显示 diff。它能展示修改，但选择在侧栏 UI 管理，而不是完全放到主工作区 inline diff。</p>
+        <pre><code>侧栏任务
+-> agent 生成修改
+-> 插件展示 diff
+-> 用户审批 / 应用
+-> 文件落盘</code></pre>
+      </div>
+    </section>
+
+    <section class="section" id="mcp">
+      <div class="section-label">07 / MCP 定位</div>
+      <div>
+        <h2>MCP 是工具和数据协议，不是 IDE UI 协议</h2>
+        <div class="grid">
+          <div class="card"><strong>MCP 适合补</strong>GitHub issue / PR、数据库、浏览器测试、文档和私有知识库、日历、Notion、Google Drive、内部 API、搜索和资料查询。</div>
+          <div class="card"><strong>MCP 不适合直接补</strong>ghost text、主编辑器 inline diff、gutter UI、文件树 dirty marker、编辑器里的 accept / reject 控件。</div>
+        </div>
+        <pre><code>IDE 负责 UI 和即时反馈
+Codex 负责 agent 能力和外部工具
+MCP 负责连接外部世界
+AGENTS.md / skills 负责工作风格和流程记忆</code></pre>
+      </div>
+    </section>
+
+    <section class="section" id="workflow">
+      <div class="section-label">08 / 推荐使用</div>
+      <div>
+        <h2>最佳路线不是让 Codex 替代 Qoder / Cursor，而是组合它们</h2>
+        <h3>日常开发</h3>
+        <ol>
+          <li>用 Qoder / Cursor / VS Code 打开项目。</li>
+          <li>同时让 Codex 打开同一个目录。</li>
+          <li>让 Codex 负责跨文件分析、修改、测试。</li>
+          <li>在 IDE 主工作区看 dirty 状态、gutter、Git diff。</li>
+          <li>用 IDE 自己的撤销、回退、diff UI 审阅。</li>
+        </ol>
+        <h3>小范围当前文件编辑</h3>
+        <p>改几行、补函数、调整命名、当前选区变换、想逐块 accept / reject 时，适合用 IDE 原生 AI inline edit。</p>
+        <h3>大范围项目任务</h3>
+        <p>梳理架构、跨文件重构、增加功能、调试复杂错误、跑测试并修复，更适合交给 Codex。</p>
+      </div>
+    </section>
+
+    <section class="section" id="memory">
+      <div class="section-label">09 / 项目记忆</div>
+      <div>
+        <h2>建议补齐项目记忆层</h2>
+        <pre><code>AGENTS.md
+.codex/project-memory.md
+.codex/repo-map.md
+.codex/tasks.md</code></pre>
+        <ul>
+          <li><code>AGENTS.md</code>: 项目规则、命令、风格、禁忌。</li>
+          <li><code>.codex/project-memory.md</code>: 长期记忆，架构决定、坑、约定。</li>
+          <li><code>.codex/repo-map.md</code>: 项目地图，入口、模块、数据流。</li>
+          <li><code>.codex/tasks.md</code>: 当前任务、已知问题、下一步。</li>
+        </ul>
+        <div class="grid">
+          <div class="card"><strong>项目初始化 skill</strong>自动扫文件树、识别语言框架、找启动和测试命令、生成 repo map。</div>
+          <div class="card"><strong>固定 diff 总结</strong>改完后说明文件、行为、验证和风险。</div>
+          <div class="card"><strong>Browser 验收</strong>前端项目启动 dev server，用浏览器打开 localhost 并检查布局。</div>
+          <div class="card"><strong>MCP 精简安装</strong>优先装真正会用的连接，减少噪音和审批。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="conclusion">
+      <div class="section-label">10 / 最终结论</div>
+      <div>
+        <h2>最现实、最舒服的目标是组合，而不是替代</h2>
+        <pre><code>Qoder / Cursor / VS Code 负责 IDE 身体
+Codex 负责高能力 agent 大脑
+MCP 负责连接外部工具和数据
+AGENTS.md / skills 负责个性、记忆和流程
+Git / IDE diff 负责可视化审阅</code></pre>
+        <ul>
+          <li>有 IDE 的安心感。</li>
+          <li>有 Codex 的模型和 agent 能力。</li>
+          <li>有 MCP 和 skills 的生态。</li>
+          <li>有项目级记忆。</li>
+          <li>有工作区 diff 可审阅。</li>
+          <li>减少无意义审批。</li>
+          <li>保留关键安全边界。</li>
+        </ul>
+        <div class="quote">不要把 Codex 当成 IDE 的替代品。把它配置成 IDE 旁边的高能力协作脑。</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell">
+      <p>深色模式版，基于 <code>codex-ide-experience-notes.md</code> 整理生成。配色：咖啡黑、暖米白、橙色。</p>
+    </div>
+  </footer>
+</body>
+</html>
