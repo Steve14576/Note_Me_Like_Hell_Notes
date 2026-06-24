@@ -7,9 +7,9 @@ As you can see from the title, I mean, come on, I'm not a pro in everything
 - If you are fond of Codex, Claude Code, Obsidian or somewhat, it's totally fine, I just provide markdown.
 - Ask an AI about it if you have doubts.
 ## Now Including
-- Fluid Mechanics Intro
+- Fluid Mechanics Intro 
 - Material Mechanics Intro [TBD]
 - Linear Algebra Intro [BeingD]
-- Thermo Dynamics Intro [TBD]
+- Thermo Dynamics Intro  
 - Python3 Intro [TBD]
 - My toolbox [whoo i wonder what this will be]
