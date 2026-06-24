@@ -1,5 +1,5 @@
 # Note_Me_Like_Hell_Notes
-> keep it simple, stupid
+> keep it simple, stupid  
 > As you can see from the title, I mean, come on, I'm not a pro in everything
 ## Use It Properly
 - Anything as much in Markdown as possible, you can open and edit realtime with render in `VScode(Cursor, TRAE, Qoder, Continue, etc.)` with plugin named `Office Viewer` .
